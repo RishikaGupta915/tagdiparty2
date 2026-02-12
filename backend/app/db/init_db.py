@@ -37,8 +37,8 @@ def init_db(database_url: str) -> None:
                 Transaction(user_id=users[1].id, amount=4500.00, status="flagged"),
             ]
             login_events = [
-                LoginEvent(user_id=users[0].id, ip_address="192.168.1.10", success=1, metadata=json.dumps({"device": "laptop"})),
-                LoginEvent(user_id=users[1].id, ip_address="10.0.0.12", success=0, metadata=json.dumps({"reason": "mfa_failed"})),
+                LoginEvent(user_id=users[0].id, ip_address="192.168.1.10", success=1, event_metadata=json.dumps({"device": "laptop"})),
+                LoginEvent(user_id=users[1].id, ip_address="10.0.0.12", success=0, event_metadata=json.dumps({"reason": "mfa_failed"})),
             ]
             session.add_all(transactions + login_events)
             session.commit()

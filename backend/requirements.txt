@@ -3,5 +3,6 @@ uvicorn==0.30.6
 pydantic==2.9.2
 pydantic-settings==2.5.2
 sqlalchemy==2.0.36
+sqlglot==25.4.0
 aiofiles==24.1.0
 python-multipart==0.0.12

@@ -32,4 +32,4 @@ class LoginEvent(Base):
     ip_address: Mapped[str] = mapped_column(String(45))
     success: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    metadata: Mapped[str] = mapped_column(Text, default="{}")
+    event_metadata: Mapped[str] = mapped_column("metadata", Text, default="{}")
