@@ -185,8 +185,8 @@ class TestLangGraphRulesMode:
     """graph.py in rules mode — no LLM needed."""
 
     def test_run_graph_rules_produces_sql(self, client):
-        from app.db.session import SessionLocal
-        db = SessionLocal()
+        from app.db.session import SessionLocalPrimary
+        db = SessionLocalPrimary()
         try:
             state = run_graph(db, "list all users", None, "rules")
             assert state["sql"] is not None
@@ -196,8 +196,8 @@ class TestLangGraphRulesMode:
             db.close()
 
     def test_run_graph_rules_unknown_table_asks_clarification(self, client):
-        from app.db.session import SessionLocal
-        db = SessionLocal()
+        from app.db.session import SessionLocalPrimary
+        db = SessionLocalPrimary()
         try:
             state = run_graph(db, "show me the widget stock", None, "rules")
             assert state.get("sql") is None
@@ -210,8 +210,8 @@ class TestLangGraphLLMMode:
     """graph.py in llm mode — LLM is mocked."""
 
     def test_llm_mode_generates_sql(self, client):
-        from app.db.session import SessionLocal
-        db = SessionLocal()
+        from app.db.session import SessionLocalPrimary
+        db = SessionLocalPrimary()
         try:
             mock_response = MagicMock()
             mock_response.content = "SELECT id, name FROM users LIMIT 10"
@@ -227,8 +227,8 @@ class TestLangGraphLLMMode:
             db.close()
 
     def test_llm_mode_clarify(self, client):
-        from app.db.session import SessionLocal
-        db = SessionLocal()
+        from app.db.session import SessionLocalPrimary
+        db = SessionLocalPrimary()
         try:
             mock_response = MagicMock()
             mock_response.content = "CLARIFY: Which date range do you want?"
@@ -244,8 +244,8 @@ class TestLangGraphLLMMode:
 
     def test_llm_mode_falls_back_to_rules_when_no_client(self, client):
         """When get_llm_client returns None (stub), LLM node falls back to rules."""
-        from app.db.session import SessionLocal
-        db = SessionLocal()
+        from app.db.session import SessionLocalPrimary
+        db = SessionLocalPrimary()
         try:
             with patch("app.services.nl2sql.graph.get_llm_client", return_value=None):
                 state = run_graph(db, "list all users", None, "llm")
@@ -257,8 +257,8 @@ class TestLangGraphLLMMode:
 
     def test_llm_mode_validates_and_repairs(self, client):
         """LLM returns SQL missing LIMIT → repair adds it."""
-        from app.db.session import SessionLocal
-        db = SessionLocal()
+        from app.db.session import SessionLocalPrimary
+        db = SessionLocalPrimary()
         try:
             mock_response = MagicMock()
             mock_response.content = "SELECT * FROM users"
@@ -277,8 +277,8 @@ class TestLangGraphLLMMode:
 
     def test_llm_mode_rejects_write_sql(self, client):
         """LLM returning a write statement should fail validation."""
-        from app.db.session import SessionLocal
-        db = SessionLocal()
+        from app.db.session import SessionLocalPrimary
+        db = SessionLocalPrimary()
         try:
             mock_response = MagicMock()
             mock_response.content = "DROP TABLE users"
@@ -301,8 +301,8 @@ class TestRunQueryPipelineLLMMode:
     """Full pipeline tests with mocked LLM."""
 
     def test_pipeline_llm_mode_returns_rows(self, client):
-        from app.db.session import SessionLocal
-        db = SessionLocal()
+        from app.db.session import SessionLocalPrimary
+        db = SessionLocalPrimary()
         try:
             mock_response = MagicMock()
             mock_response.content = "SELECT id, name FROM users LIMIT 5"
@@ -329,8 +329,8 @@ class TestRunQueryPipelineLLMMode:
             db.close()
 
     def test_pipeline_llm_mode_clarification(self, client):
-        from app.db.session import SessionLocal
-        db = SessionLocal()
+        from app.db.session import SessionLocalPrimary
+        db = SessionLocalPrimary()
         try:
             mock_response = MagicMock()
             mock_response.content = "CLARIFY: Which dataset?"

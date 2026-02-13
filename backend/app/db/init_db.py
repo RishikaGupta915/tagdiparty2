@@ -1,7 +1,11 @@
-import json
 import os
-from sqlalchemy import select
-from app.db.session import engine, SessionLocal
+from sqlalchemy import Table
+from app.db.session import (
+    engine_primary,
+    engine_alerts,
+    engine_dashboards,
+    SessionLocalPrimary,
+)
 from app.models.base import Base
 from app.models.demo import User, Transaction, LoginEvent
 from app.models.alerts import Metric, Event, AlertHistory, AnomalyHistory
@@ -23,24 +27,57 @@ def _ensure_sqlite_dir(database_url: str) -> None:
 
 def init_db(database_url: str) -> None:
     _ensure_sqlite_dir(database_url)
-    Base.metadata.create_all(bind=engine)
 
-    with SessionLocal() as session:
-        has_user = session.execute(select(User).limit(1)).scalar_one_or_none()
-        if has_user is None:
-            users = [
-                User(name="Ava Chen", email="ava.chen@example.com", role="analyst"),
-                User(name="Jordan Miles", email="jordan.miles@example.com", role="executive"),
-            ]
-            session.add_all(users)
-            session.flush()
-            transactions = [
-                Transaction(user_id=users[0].id, amount=1200.50, status="completed"),
-                Transaction(user_id=users[1].id, amount=4500.00, status="flagged"),
-            ]
-            login_events = [
-                LoginEvent(user_id=users[0].id, ip_address="192.168.1.10", success=1, event_metadata=json.dumps({"device": "laptop"})),
-                LoginEvent(user_id=users[1].id, ip_address="10.0.0.12", success=0, event_metadata=json.dumps({"reason": "mfa_failed"})),
-            ]
-            session.add_all(transactions + login_events)
-            session.commit()
+    primary_tables = [
+        Base.metadata.tables["users"],
+        Base.metadata.tables["transactions"],
+        Base.metadata.tables["login_events"],
+        Base.metadata.tables["transactions_archive"],
+        Base.metadata.tables["login_events_archive"],
+        Base.metadata.tables["daily_transaction_metrics"],
+        Base.metadata.tables["scan_history"],
+    ]
+    alerts_tables = [
+        Base.metadata.tables["metrics"],
+        Base.metadata.tables["events"],
+        Base.metadata.tables["alert_history"],
+        Base.metadata.tables["anomaly_history"],
+    ]
+    dashboards_tables = [
+        Base.metadata.tables["dashboards"],
+    ]
+
+    Base.metadata.create_all(bind=engine_primary, tables=primary_tables)
+    Base.metadata.create_all(bind=engine_alerts, tables=alerts_tables)
+    Base.metadata.create_all(bind=engine_dashboards, tables=dashboards_tables)
+
+    _seed_demo_data()
+
+
+def _seed_demo_data() -> None:
+    """Insert demo data if the users table is empty."""
+    db = SessionLocalPrimary()
+    try:
+        from sqlalchemy import select
+        existing = db.execute(select(User)).first()
+        if existing:
+            return  # already seeded
+
+        u1 = User(name="Ava Chen", email="ava.chen@example.com", role="analyst")
+        u2 = User(name="Jordan Miles", email="jordan.miles@example.com", role="admin")
+        db.add_all([u1, u2])
+        db.flush()
+
+        t1 = Transaction(user_id=u1.id, amount=1200.50, currency="USD", status="completed")
+        t2 = Transaction(user_id=u2.id, amount=340.00, currency="USD", status="flagged")
+        db.add_all([t1, t2])
+
+        l1 = LoginEvent(user_id=u1.id, ip_address="10.0.0.1", success=1, event_metadata='{"browser":"Chrome"}')
+        l2 = LoginEvent(user_id=u2.id, ip_address="192.168.1.100", success=0, event_metadata='{"browser":"Firefox"}')
+        db.add_all([l1, l2])
+
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()

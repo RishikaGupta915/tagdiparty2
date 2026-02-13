@@ -16,23 +16,31 @@ def test_db_tables(client) -> None:
     assert body["success"] is True
     tables = body["data"]["tables"]
     assert isinstance(tables, list)
-    # Core demo tables
+    # Core demo tables (primary DB)
     assert "users" in tables
     assert "transactions" in tables
     assert "login_events" in tables
-    # Alert subsystem tables
-    assert "metrics" in tables
-    assert "events" in tables
-    assert "alert_history" in tables
-    assert "anomaly_history" in tables
     # Sentinel
     assert "scan_history" in tables
-    # Dashboards
-    assert "dashboards" in tables
     # Analytics & archive
     assert "daily_transaction_metrics" in tables
     assert "transactions_archive" in tables
     assert "login_events_archive" in tables
+
+    # Alert subsystem tables (alerts DB)
+    resp_alerts = client.get("/api/db-test/alerts")
+    assert resp_alerts.status_code == 200
+    alert_tables = resp_alerts.json()["data"]["tables"]
+    assert "metrics" in alert_tables
+    assert "events" in alert_tables
+    assert "alert_history" in alert_tables
+    assert "anomaly_history" in alert_tables
+
+    # Dashboards (dashboards DB)
+    resp_dash = client.get("/api/db-test/dashboards")
+    assert resp_dash.status_code == 200
+    dash_tables = resp_dash.json()["data"]["tables"]
+    assert "dashboards" in dash_tables
 
 
 def test_db_schema(client) -> None:

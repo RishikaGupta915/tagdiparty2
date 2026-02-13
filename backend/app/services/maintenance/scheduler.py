@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import Optional
 from app.core.config import get_settings
-from app.db.session import SessionLocal
+from app.db.session import SessionLocalPrimary
 from app.services.maintenance.archive import refresh_daily_transaction_metrics
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ _task: Optional[asyncio.Task] = None
 async def _run_scheduler(interval_minutes: int) -> None:
     while True:
         try:
-            with SessionLocal() as session:
+            with SessionLocalPrimary() as session:
                 refresh_daily_transaction_metrics(session)
             logger.info("maintenance.refresh_daily_transaction_metrics completed")
         except Exception as exc:
