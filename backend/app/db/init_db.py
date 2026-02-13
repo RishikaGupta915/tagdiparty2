@@ -11,6 +11,7 @@ from app.models.demo import User, Transaction, LoginEvent
 from app.models.alerts import Metric, Event, AlertHistory, AnomalyHistory
 from app.models.sentinel import ScanHistory
 from app.models.dashboard import Dashboard
+from app.models.ingestion import DataCenter, IngestionRun, SchemaRegistry
 from app.models.analytics import DailyTransactionMetric
 from app.models.archive import TransactionArchive, LoginEventArchive
 
@@ -36,6 +37,9 @@ def init_db(database_url: str) -> None:
         Base.metadata.tables["login_events_archive"],
         Base.metadata.tables["daily_transaction_metrics"],
         Base.metadata.tables["scan_history"],
+        Base.metadata.tables["data_centers"],
+        Base.metadata.tables["ingestion_runs"],
+        Base.metadata.tables["schema_registry"],
     ]
     alerts_tables = [
         Base.metadata.tables["metrics"],
@@ -52,6 +56,7 @@ def init_db(database_url: str) -> None:
     Base.metadata.create_all(bind=engine_dashboards, tables=dashboards_tables)
 
     _seed_demo_data()
+    _seed_data_centers()
 
 
 def _seed_demo_data() -> None:
@@ -76,6 +81,27 @@ def _seed_demo_data() -> None:
         l2 = LoginEvent(user_id=u2.id, ip_address="192.168.1.100", success=0, event_metadata='{"browser":"Firefox"}')
         db.add_all([l1, l2])
 
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+
+def _seed_data_centers() -> None:
+    """Insert demo data centers if empty."""
+    db = SessionLocalPrimary()
+    try:
+        from sqlalchemy import select
+        existing = db.execute(select(DataCenter)).first()
+        if existing:
+            return
+        defaults = [
+            DataCenter(name="dc-west", status="healthy"),
+            DataCenter(name="dc-east", status="healthy"),
+            DataCenter(name="dc-eu", status="degraded"),
+        ]
+        db.add_all(defaults)
         db.commit()
     except Exception:
         db.rollback()

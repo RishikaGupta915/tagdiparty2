@@ -1,87 +1,106 @@
-# PRD: Hackathon_backend_deriv (Implementation Plan)
-Date: 2026-02-12
-Status: Not implemented (new build required)
-
-## What It Is
-A FastAPI-based backend with a lightweight web UI that turns natural-language questions into SQL, executes queries against a financial dataset, and returns results with visualization hints and executive insights. It also includes an autonomous Sentinel scanning mode for proactive security/compliance/risk/operations monitoring, plus a full alerting subsystem with metrics, anomaly tracking, and synthetic event generation. Deployment is containerized and wired for AWS ECS.
+# PRD: Multi-Data-Center Collection & Analytics Platform
+Date: 2026-02-13
+Status: Updated requirements
 
 ## Summary
-Build a full NL2SQL + Sentinel platform from scratch with a clear, modular architecture. This document defines what must be implemented in this repo.
+Build a centralized data collection and optimization platform that automatically pulls data from multiple data centers, consolidates it into a unified store, and powers dashboards, NL2SQL analytics, and proactive AI monitoring with alerting. The system must run continuously without manual intervention and provide real-time visibility across all connected data centers.
 
 ## Goals
-- Deliver a stable, maintainable NL2SQL + Sentinel backend and a minimal but functional frontend.
-- Provide deterministic, safe SQL generation with schema grounding.
-- Enable autonomous Sentinel scans with stored history and SSE streaming.
-- Provide a working alerting subsystem with metrics, event ingestion, and anomaly history.
-- Provide containerized deployment and CI scaffolding.
+- Automatically collect data from multiple data centers into a centralized store.
+- Normalize and unify schemas so analytics can run across all sources.
+- Provide dashboards, tables, and charts for quick analysis.
+- Enable NL2SQL questions across the consolidated dataset.
+- Run a proactive AI agent that continuously analyzes data and raises alerts.
+- Support near-real-time monitoring with streaming updates.
 
 ## Non-Goals
-- Production-grade auth/RBAC, rate limiting, or hardened security.
-- Multi-tenant data isolation.
-- Arbitrary schema discovery without explicit configuration.
+- Full production security hardening (auth/RBAC, rate limiting) in this phase.
+- Multi-tenant isolation.
+- Arbitrary schema inference without configuration.
 
 ## Users
-- Executive / Analyst
-- Security / Compliance Lead
-- Ops Engineer
+- Executive / Analyst: wants a unified view and high-level insights.
+- Security / Compliance Lead: wants risk indicators and alerts.
+- Ops Engineer: wants system health and data freshness monitoring.
 
 ## Tech Stack (Must Use)
 - Backend: Python + FastAPI
-- Frontend: React
 - Orchestration: LangGraph + LangChain
 - LLMs: Google Gemini (default), OpenAI (optional)
-- Database: SQLite by default with `DATABASE_URL` overrides
+- Frontend: React
+- Storage: SQLite by default (configurable to MySQL/Postgres)
 - Deploy: Docker + GitHub Actions
 
-## Data & Storage (Must Define)
-- Primary DB schema for demo data (users, transactions, login_events).
-- Alerts DB schema (events, metrics, alert_history, anomaly_history).
-- Dashboards DB schema (dashboards).
-- Scan history persistence format and retention strategy.
+## Data Sources & Collection (Must Implement)
+- Support multiple data centers as sources.
+- Each data center may expose:
+  - Database connection (SQLAlchemy URL)
+  - File drops (CSV) for batch ingestion
+  - Optional API endpoints
+- Automatic polling and ingestion with no manual trigger.
+- Data freshness tracking per source.
+- Ingestion failures must be logged and surfaced in UI.
+
+## Data Model (Must Define)
+### Centralized Store
+- `users`, `transactions`, `login_events` (canonical datasets)
+- Additional `source_id`, `data_center_id`, and `ingested_at` fields on all rows.
+- Metadata tables:
+  - `data_centers` (id, name, status, last_sync)
+  - `ingestion_runs` (id, source_id, status, records_ingested, errors)
+  - `schema_registry` (table, version, columns)
+
+### Alerts Store
+- `events`, `metrics`, `alert_history`, `anomaly_history`
+
+### Dashboards Store
+- `dashboards` (saved configurations)
+
+### Scan History
+- `scan_history` with JSON payloads and retention policy.
 
 ## Core Capabilities (Must Implement)
-### 1) NL2SQL Query Engine
-- Natural language to SQL generation with strict schema grounding.
-- Clarification flow for ambiguous or unsupported queries.
-- SQL validation and repair loop.
-- Safe query execution with guardrails (read-only by default).
-- Structured response: SQL, result data, visualization config, insights.
+### 1) Automated Data Collection
+- Configurable connectors per data center.
+- Scheduled ingestion + incremental sync.
+- Schema normalization and mapping into canonical tables.
+- File/CSV ingestion endpoint and automated pickup.
 
-### 2) Domain Intelligence
-- Domain-specific prompts and schema context.
-- Configurable domains: security, compliance, risk, operations, general.
-- Automated schema profiling to inform prompts and entity resolution.
+### 2) Unified Analytics Engine
+- NL2SQL with strict schema grounding.
+- Clarification flow for ambiguous queries.
+- Validation + repair loop.
+- Safe SQL execution (read-only).
+- Structured output: SQL, rows, visualization config, insights.
 
-### 3) Sentinel Autonomous Scanning
-- Autonomous mission generation per domain.
-- Mission execution pipeline using the NL2SQL engine.
-- Risk scoring based on actual results.
-- Deep-dive follow-ups for high-risk findings.
-- Cross-domain correlation engine.
+### 3) Sentinel Autonomous Agent
+- Continuous scanning over consolidated data.
+- Mission generation per domain (security, compliance, risk, ops).
+- Risk scoring and correlation across data centers.
+- Deep-dive follow-ups for anomalies.
 - Executive narrative summary generation.
-- Scan history persistence and retrieval.
-- Streaming scan endpoint (SSE) with progress events.
+- Persistent scan history with SSE streaming updates.
 
-### 4) Alerting & Monitoring System
-- Alert metrics CRUD (create/update/list/delete).
-- Sliding window evaluation with fast cache (Redis/Valkey optional, SQLite fallback).
+### 4) Alerts & Monitoring
+- Alert metrics CRUD.
+- Sliding window evaluation (Redis optional, SQLite fallback).
 - Event ingestion API.
-- Alert history and anomaly summaries.
-- Event generators for testing and burst simulation.
-- Worker registry and orchestration hooks.
+- Anomaly summaries and spike detection.
+- Automated alerting when data center issues detected.
 
 ### 5) Frontend UI
-- Chat UI for NL2SQL queries.
-- Sentinel dashboard for autonomous scan results.
-- Charting and tabular results rendering.
-- CSV export.
-- API status indicator and environment configuration.
+- Data center overview dashboard.
+- Chat-style NL2SQL interface.
+- Sentinel dashboard with risk visualization.
+- Tables, charts, and CSV export.
+- Environment/config panel.
+- Streaming status indicator for ingestion and scans.
 
 ### 6) Deployment & Ops
-- Dockerized backend and optional frontend hosting.
-- CI workflow for backend tests and frontend build.
-- Environment-based configuration (dev/stage/prod).
-- Structured logging, metrics, and error handling.
+- Dockerized backend and frontend.
+- CI for tests + build.
+- Environment-based config (dev/stage/prod).
+- Structured logging, metrics, error handling.
 
 ## API Requirements (Must Build)
 ### Public API
@@ -96,35 +115,38 @@ Build a full NL2SQL + Sentinel platform from scratch with a clear, modular archi
 - `POST /api/v1/dashboards`
 - `GET /api/v1/dashboards/{dashboardId}`
 
-### Admin/Diagnostics API
-- `/api/db-test/*` (health, schema, tables, safe SELECT)
-- `/redis-test/*` (ping, read-write, info)
-- `/api/v1/alerts/*` (metrics, history, status, control)
+### Data Collection API
+- `POST /api/v1/ingest/upload` (CSV file ingestion)
+- `POST /api/v1/ingest/sync` (trigger sync for a data center)
+- `GET /api/v1/ingest/status` (latest ingestion status)
+- `GET /api/v1/data-centers` (list sources + health)
 
-## Quality Bar (Must Enforce)
-- Test coverage for pipeline stages and key endpoints.
-- Deterministic SQL generation constraints to prevent hallucinations.
-- Clear error models and consistent API responses.
-- Robust schema validation and query safety.
+### Admin/Diagnostics
+- `/api/db-test/*`
+- `/redis-test/*`
+- `/api/v1/alerts/*`
+
+## Quality Bar
+- Test coverage for ingestion, NL2SQL, and alerting.
+- Deterministic SQL generation constraints.
+- Consistent API error responses.
+- Robust schema validation and safe query execution.
 
 ## Security Requirements (Deferred)
-- Authentication and RBAC for production use.
-- CORS configured per environment.
-- Secrets management for API keys and tokens.
+- Authentication and RBAC for production.
+- Secrets management for connectors.
 - Audit logging for all queries and scans.
 
 ## Milestones
-1. Architecture & API contract finalized.
-2. Core NL2SQL pipeline built and tested.
-3. Sentinel scanning implemented.
-4. Alert engine & metrics implemented.
-5. Frontend UI and dashboard built.
-6. CI/CD and deployment validated.
+1. Data source configuration + ingestion pipeline.
+2. Centralized storage + schema registry.
+3. NL2SQL + interactive queries over unified data.
+4. Sentinel proactive agent + alerts.
+5. Dashboards and UI polish.
+6. CI/CD + deployment validation.
 
 ## Acceptance Criteria
-- All required endpoints are implemented and documented.
-- NL2SQL pipeline returns valid SQL and correct results for supported queries.
-- Sentinel scans produce deterministic, explainable outputs and stored history.
-- Alert engine can generate alerts from synthetic events.
-- Frontend can query, visualize, and export results.
-- CI/CD runs successfully.
+- Data centers sync automatically with no manual intervention.
+- Queries and dashboards operate on consolidated data.
+- AI agent produces proactive insights and alerts.
+- UI shows ingestion health, risk status, and analytics outputs.
