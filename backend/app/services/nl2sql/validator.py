@@ -10,7 +10,7 @@ def is_read_only_sql(sql: str) -> bool:
         return False
     if not isinstance(expression, exp.Select):
         return False
-    banned = (exp.Insert, exp.Update, exp.Delete, exp.Drop, exp.Alter, exp.Truncate)
+    banned = (exp.Insert, exp.Update, exp.Delete, exp.Drop, exp.AlterTable, exp.TruncateTable)
     return not expression.find(banned)
 
 

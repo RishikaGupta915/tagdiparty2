@@ -1,10 +1,4 @@
-from fastapi.testclient import TestClient
-from app.main import app
-
-client = TestClient(app)
-
-
-def test_query_list_users() -> None:
+def test_query_list_users(client) -> None:
     response = client.post("/api/v1/query", json={"query": "List users"})
     assert response.status_code == 200
     body = response.json()
