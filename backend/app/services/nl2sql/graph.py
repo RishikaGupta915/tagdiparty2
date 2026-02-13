@@ -4,7 +4,7 @@ from app.services.nl2sql.schema import get_schema_profile
 from app.services.nl2sql.rules import generate_sql as generate_sql_rules
 from app.services.nl2sql.validator import validate_sql
 from app.services.nl2sql.repair import repair_sql
-from app.services.nl2sql.llm import build_prompt, get_llm_client
+from app.services.nl2sql.llm import build_prompt, get_llm_client, parse_llm_output
 
 
 class NL2SQLState(TypedDict, total=False):
@@ -35,9 +35,10 @@ def build_graph(db) -> StateGraph:
 
         prompt = build_prompt(state["query"], state.get("domain"), state["schema"])
         response = llm.invoke(prompt)
-        sql = response.content.strip() if hasattr(response, "content") else str(response).strip()
+        content = response.content.strip() if hasattr(response, "content") else str(response).strip()
+        sql, questions = parse_llm_output(content)
         state["sql"] = sql
-        state["questions"] = []
+        state["questions"] = questions
         return state
 
     def _validate_sql(state: NL2SQLState) -> NL2SQLState:
