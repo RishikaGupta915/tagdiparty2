@@ -47,6 +47,7 @@ def update_metric(metric_id: int, payload: MetricRequest, db: Session = Depends(
     metric.window_minutes = payload.window_minutes
     metric.threshold = payload.threshold
     db.commit()
+    db.refresh(metric)
     return APIResponse(success=True, data={"metric": _to_dict(metric)})
 
 

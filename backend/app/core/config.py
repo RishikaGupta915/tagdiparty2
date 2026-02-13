@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     env: str = Field(default="dev")
     database_url: str = Field(default="sqlite:///./data/app.db", validation_alias="DATABASE_URL")
     cors_origins: str = Field(default="http://localhost:5173", validation_alias="CORS_ORIGINS")
+    maintenance_enabled: bool = Field(default=True, validation_alias="MAINTENANCE_ENABLED")
+    maintenance_interval_minutes: int = Field(default=15, validation_alias="MAINTENANCE_INTERVAL_MINUTES")
 
     @property
     def cors_origin_list(self) -> List[str]:

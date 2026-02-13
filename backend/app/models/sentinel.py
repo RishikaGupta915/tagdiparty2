@@ -1,10 +1,14 @@
-from sqlalchemy import DateTime, Integer, String, Text, func
+from sqlalchemy import DateTime, Integer, String, Text, func, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
 
 class ScanHistory(Base):
     __tablename__ = "scan_history"
+    __table_args__ = (
+        Index("ix_scan_history_domain", "domain"),
+        Index("ix_scan_history_created_at", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     scan_id: Mapped[str] = mapped_column(String(64), unique=True)

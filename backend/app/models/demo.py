@@ -1,10 +1,13 @@
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_users_created_at", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200))
@@ -15,6 +18,12 @@ class User(Base):
 
 class Transaction(Base):
     __tablename__ = "transactions"
+    __table_args__ = (
+        Index("ix_transactions_user_id", "user_id"),
+        Index("ix_transactions_created_at", "created_at"),
+        Index("ix_transactions_status", "status"),
+        Index("ix_transactions_user_created_at", "user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
@@ -26,6 +35,12 @@ class Transaction(Base):
 
 class LoginEvent(Base):
     __tablename__ = "login_events"
+    __table_args__ = (
+        Index("ix_login_events_user_id", "user_id"),
+        Index("ix_login_events_created_at", "created_at"),
+        Index("ix_login_events_success", "success"),
+        Index("ix_login_events_user_created_at", "user_id", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))

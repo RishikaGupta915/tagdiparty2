@@ -4,6 +4,7 @@ from app.api.router import router
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.db.init_db import init_db
+from app.services.maintenance.scheduler import start_scheduler, stop_scheduler
 
 settings = get_settings()
 
@@ -25,3 +26,9 @@ app.include_router(router)
 @app.on_event("startup")
 def startup() -> None:
     init_db(settings.database_url)
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+def shutdown() -> None:
+    stop_scheduler()

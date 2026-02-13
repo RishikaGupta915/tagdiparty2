@@ -7,6 +7,8 @@ from app.models.demo import User, Transaction, LoginEvent
 from app.models.alerts import Metric, Event, AlertHistory, AnomalyHistory
 from app.models.sentinel import ScanHistory
 from app.models.dashboard import Dashboard
+from app.models.analytics import DailyTransactionMetric
+from app.models.archive import TransactionArchive, LoginEventArchive
 
 
 def _ensure_sqlite_dir(database_url: str) -> None:

@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timedelta
 import re
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -47,6 +48,50 @@ def _detect_filters(query: str, table: str) -> List[str]:
     return filters
 
 
+def _format_dt(dt: datetime) -> str:
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _detect_date_range(query: str) -> Optional[Tuple[str, str]]:
+    q = query.lower()
+    now = datetime.utcnow()
+
+    if "today" in q:
+        start = datetime(now.year, now.month, now.day)
+        return _format_dt(start), _format_dt(now)
+
+    if "yesterday" in q:
+        end = datetime(now.year, now.month, now.day)
+        start = end - timedelta(days=1)
+        return _format_dt(start), _format_dt(end)
+
+    if "this week" in q:
+        start = datetime(now.year, now.month, now.day) - timedelta(days=now.weekday())
+        return _format_dt(start), _format_dt(now)
+
+    if "this month" in q:
+        start = datetime(now.year, now.month, 1)
+        return _format_dt(start), _format_dt(now)
+
+    match_days = re.search(r"(last|past)\s+(\d+)\s+days", q)
+    if match_days:
+        days = int(match_days.group(2))
+        start = now - timedelta(days=days)
+        return _format_dt(start), _format_dt(now)
+
+    match_hours = re.search(r"(last|past)\s+(\d+)\s+hours", q)
+    if match_hours:
+        hours = int(match_hours.group(2))
+        start = now - timedelta(hours=hours)
+        return _format_dt(start), _format_dt(now)
+
+    if "recent" in q:
+        start = now - timedelta(days=7)
+        return _format_dt(start), _format_dt(now)
+
+    return None
+
+
 def _detect_intent(query: str) -> str:
     q = query.lower()
     if "count" in q or "number of" in q:
@@ -72,8 +117,23 @@ def generate_sql(query: str, domain: Optional[str], schema: Dict[str, List[str]]
     group_by = _detect_group_by(query, columns)
     filters = _detect_filters(query, table)
     limit = _detect_limit(query)
+    date_range = _detect_date_range(query)
 
-    meta.update({"intent": intent, "table": table, "columns": columns, "group_by": group_by, "filters": filters, "limit": limit})
+    if date_range and "created_at" in columns:
+        start, end = date_range
+        filters.append(f"created_at >= '{start}' AND created_at < '{end}'")
+
+    meta.update(
+        {
+            "intent": intent,
+            "table": table,
+            "columns": columns,
+            "group_by": group_by,
+            "filters": filters,
+            "limit": limit,
+            "date_range": date_range,
+        }
+    )
 
     where_clause = f" WHERE {' AND '.join(filters)}" if filters else ""
 
