@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     maintenance_enabled: bool = Field(default=True, validation_alias="MAINTENANCE_ENABLED")
     maintenance_interval_minutes: int = Field(default=15, validation_alias="MAINTENANCE_INTERVAL_MINUTES")
 
+    nl2sql_mode: str = Field(default="rules", validation_alias="NL2SQL_MODE")
+    llm_provider: str = Field(default="stub", validation_alias="LLM_PROVIDER")
+    llm_model: str = Field(default="gpt-4o-mini", validation_alias="LLM_MODEL")
+    openai_api_key: str | None = Field(default=None, validation_alias="OPENAI_API_KEY")
+    gemini_api_key: str | None = Field(default=None, validation_alias="GEMINI_API_KEY")
+
     @property
     def cors_origin_list(self) -> List[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
