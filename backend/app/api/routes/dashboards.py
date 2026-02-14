@@ -2,7 +2,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from app.db.session import get_db
+from app.db.session import get_db_dashboards
 from app.models.dashboard import Dashboard
 from app.schemas.common import APIResponse
 from app.schemas.dashboard import DashboardCreate
@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.get("/api/v1/dashboards", response_model=APIResponse)
-def list_dashboards(db: Session = Depends(get_db)) -> APIResponse:
+def list_dashboards(db: Session = Depends(get_db_dashboards)) -> APIResponse:
     dashboards = list(db.execute(select(Dashboard)).scalars())
     data = []
     for d in dashboards:
@@ -24,7 +24,7 @@ def list_dashboards(db: Session = Depends(get_db)) -> APIResponse:
 
 
 @router.post("/api/v1/dashboards", response_model=APIResponse)
-def create_dashboard(payload: DashboardCreate, db: Session = Depends(get_db)) -> APIResponse:
+def create_dashboard(payload: DashboardCreate, db: Session = Depends(get_db_dashboards)) -> APIResponse:
     dashboard = Dashboard(
         name=payload.name,
         description=payload.description or "",
@@ -37,7 +37,7 @@ def create_dashboard(payload: DashboardCreate, db: Session = Depends(get_db)) ->
 
 
 @router.get("/api/v1/dashboards/{dashboardId}", response_model=APIResponse)
-def get_dashboard(dashboardId: int, db: Session = Depends(get_db)) -> APIResponse:
+def get_dashboard(dashboardId: int, db: Session = Depends(get_db_dashboards)) -> APIResponse:
     dashboard = db.get(Dashboard, dashboardId)
     if dashboard is None:
         raise HTTPException(status_code=404, detail="Dashboard not found")

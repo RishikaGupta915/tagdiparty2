@@ -1,0 +1,3 @@
+user_id,ip_address,success,metadata
+1,10.0.0.5,1,{"browser":"Chrome"}
+2,10.0.0.9,0,{"browser":"Firefox"}

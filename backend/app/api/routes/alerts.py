@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from app.db.session import get_db
+from app.db.session import get_db_alerts
 from app.models.alerts import Metric, AlertHistory, AnomalyHistory
 from app.schemas.alert import MetricRequest
 from app.schemas.common import APIResponse
@@ -16,13 +16,13 @@ def _to_dict(model):
 
 
 @router.get("/metrics", response_model=APIResponse)
-def list_metrics(db: Session = Depends(get_db)) -> APIResponse:
+def list_metrics(db: Session = Depends(get_db_alerts)) -> APIResponse:
     metrics = list(db.execute(select(Metric)).scalars())
     return APIResponse(success=True, data={"metrics": [_to_dict(m) for m in metrics]})
 
 
 @router.post("/metrics", response_model=APIResponse)
-def create_metric(payload: MetricRequest, db: Session = Depends(get_db)) -> APIResponse:
+def create_metric(payload: MetricRequest, db: Session = Depends(get_db_alerts)) -> APIResponse:
     metric = Metric(
         name=payload.name,
         description=payload.description or "",
@@ -37,7 +37,7 @@ def create_metric(payload: MetricRequest, db: Session = Depends(get_db)) -> APIR
 
 
 @router.put("/metrics/{metric_id}", response_model=APIResponse)
-def update_metric(metric_id: int, payload: MetricRequest, db: Session = Depends(get_db)) -> APIResponse:
+def update_metric(metric_id: int, payload: MetricRequest, db: Session = Depends(get_db_alerts)) -> APIResponse:
     metric = db.get(Metric, metric_id)
     if metric is None:
         raise HTTPException(status_code=404, detail="Metric not found")
@@ -47,11 +47,12 @@ def update_metric(metric_id: int, payload: MetricRequest, db: Session = Depends(
     metric.window_minutes = payload.window_minutes
     metric.threshold = payload.threshold
     db.commit()
+    db.refresh(metric)
     return APIResponse(success=True, data={"metric": _to_dict(metric)})
 
 
 @router.delete("/metrics/{metric_id}", response_model=APIResponse)
-def delete_metric(metric_id: int, db: Session = Depends(get_db)) -> APIResponse:
+def delete_metric(metric_id: int, db: Session = Depends(get_db_alerts)) -> APIResponse:
     metric = db.get(Metric, metric_id)
     if metric is None:
         raise HTTPException(status_code=404, detail="Metric not found")
@@ -61,12 +62,12 @@ def delete_metric(metric_id: int, db: Session = Depends(get_db)) -> APIResponse:
 
 
 @router.get("/history", response_model=APIResponse)
-def list_alert_history(db: Session = Depends(get_db)) -> APIResponse:
+def list_alert_history(db: Session = Depends(get_db_alerts)) -> APIResponse:
     rows = list(db.execute(select(AlertHistory)).scalars())
     return APIResponse(success=True, data={"history": [_to_dict(r) for r in rows]})
 
 
 @router.get("/anomalies", response_model=APIResponse)
-def list_anomaly_history(db: Session = Depends(get_db)) -> APIResponse:
+def list_anomaly_history(db: Session = Depends(get_db_alerts)) -> APIResponse:
     rows = list(db.execute(select(AnomalyHistory)).scalars())
     return APIResponse(success=True, data={"anomalies": [_to_dict(r) for r in rows]})

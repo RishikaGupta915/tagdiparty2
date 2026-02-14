@@ -1,10 +1,13 @@
-from sqlalchemy import DateTime, Float, Integer, String, Text, func
+from sqlalchemy import DateTime, Float, Integer, String, Text, func, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
 
 class Metric(Base):
     __tablename__ = "metrics"
+    __table_args__ = (
+        Index("ix_metrics_created_at", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(200), unique=True)
@@ -17,6 +20,10 @@ class Metric(Base):
 
 class Event(Base):
     __tablename__ = "events"
+    __table_args__ = (
+        Index("ix_events_event_type", "event_type"),
+        Index("ix_events_created_at", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     event_type: Mapped[str] = mapped_column(String(100))
@@ -27,6 +34,10 @@ class Event(Base):
 
 class AlertHistory(Base):
     __tablename__ = "alert_history"
+    __table_args__ = (
+        Index("ix_alert_history_metric_name", "metric_name"),
+        Index("ix_alert_history_created_at", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     metric_name: Mapped[str] = mapped_column(String(200))
@@ -38,6 +49,10 @@ class AlertHistory(Base):
 
 class AnomalyHistory(Base):
     __tablename__ = "anomaly_history"
+    __table_args__ = (
+        Index("ix_anomaly_history_metric_name", "metric_name"),
+        Index("ix_anomaly_history_created_at", "created_at"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     metric_name: Mapped[str] = mapped_column(String(200))

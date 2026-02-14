@@ -1,0 +1,3 @@
+user_id,amount,currency,status
+1,120.50,USD,completed
+2,980.00,USD,flagged

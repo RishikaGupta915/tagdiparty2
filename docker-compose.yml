@@ -1,4 +1,4 @@
-version: "3.9"
+version: '3.9'
 
 services:
   backend:
@@ -6,9 +6,11 @@ services:
       context: .
       dockerfile: docker/backend.Dockerfile
     ports:
-      - "8000:8000"
+      - '8000:8000'
     environment:
       - DATABASE_URL=sqlite:///./data/app.db
+      - ALERTS_DATABASE_URL=sqlite:///./data/derivinsight_alerts.db
+      - DASHBOARDS_DATABASE_URL=sqlite:///./data/deriveinsights_dashboard.db
       - CORS_ORIGINS=http://localhost:5173
     volumes:
       - ./data:/app/data
@@ -18,4 +20,4 @@ services:
       context: .
       dockerfile: docker/frontend.Dockerfile
     ports:
-      - "5173:80"
+      - '5173:80'

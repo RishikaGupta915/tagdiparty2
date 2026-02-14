@@ -4,7 +4,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.schemas.common import APIError, APIResponse
-from app.services.sentinel.engine import run_scan, list_history, get_history
+from app.services.sentinel.engine import run_scan, run_scan_stream, list_history, get_history
 
 router = APIRouter()
 
@@ -18,9 +18,8 @@ def sentinel_scan(domain: str = "general", db: Session = Depends(get_db)) -> API
 @router.get("/api/v1/sentinel/scan/stream")
 def sentinel_scan_stream(domain: str = "general", db: Session = Depends(get_db)) -> StreamingResponse:
     def event_stream():
-        yield "event: status\ndata: {\"status\": \"started\"}\n\n"
-        result = run_scan(db, domain)
-        yield f"event: complete\ndata: {json.dumps(result)}\n\n"
+        for event, payload in run_scan_stream(db, domain):
+            yield f"event: {event}\ndata: {json.dumps(payload)}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 
@@ -28,7 +27,10 @@ def sentinel_scan_stream(domain: str = "general", db: Session = Depends(get_db))
 @router.get("/api/v1/sentinel/history", response_model=APIResponse)
 def sentinel_history(db: Session = Depends(get_db)) -> APIResponse:
     history = list_history(db)
-    data = [{"scan_id": h.scan_id, "domain": h.domain, "status": h.status, "risk_score": h.risk_score, "created_at": str(h.created_at)} for h in history]
+    data = [
+        {"scan_id": h.scan_id, "domain": h.domain, "status": h.status, "risk_score": h.risk_score, "created_at": str(h.created_at)}
+        for h in history
+    ]
     return APIResponse(success=True, data={"history": data})
 
 

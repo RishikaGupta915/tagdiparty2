@@ -3,5 +3,10 @@ uvicorn==0.30.6
 pydantic==2.9.2
 pydantic-settings==2.5.2
 sqlalchemy==2.0.36
+sqlglot==25.4.0
+langchain>=1.2.10
+langgraph>=1.0.8
+langchain-openai>=1.1.9
+langchain-google-genai>=4.2.0
 aiofiles==24.1.0
 python-multipart==0.0.12
