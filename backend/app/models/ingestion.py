@@ -48,3 +48,22 @@ class SchemaRegistry(Base):
     version: Mapped[int] = mapped_column(Integer, default=1)
     columns_json: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DataCenterSource(Base):
+    __tablename__ = "data_center_sources"
+    __table_args__ = (
+        Index("ix_data_center_sources_data_center_id", "data_center_id"),
+        Index("ix_data_center_sources_type", "source_type"),
+        Index("ix_data_center_sources_last_sync", "last_sync"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    data_center_id: Mapped[int] = mapped_column(ForeignKey("data_centers.id"))
+    source_type: Mapped[str] = mapped_column(String(50))  # db, csv, api
+    config_json: Mapped[str] = mapped_column(Text, default="{}")
+    status: Mapped[str] = mapped_column(String(50), default="active")
+    last_sync: Mapped[str | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_error: Mapped[str] = mapped_column(Text, default="")
+    cursor_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())

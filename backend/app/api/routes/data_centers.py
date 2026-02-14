@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.models.ingestion import DataCenter, IngestionRun
+from app.models.ingestion import DataCenter, IngestionRun, DataCenterSource
 from app.schemas.common import APIResponse
 
 router = APIRouter()
@@ -11,6 +11,10 @@ router = APIRouter()
 @router.get("/api/v1/data-centers", response_model=APIResponse)
 def list_data_centers(db: Session = Depends(get_db)) -> APIResponse:
     centers = list(db.execute(select(DataCenter)).scalars())
+    sources = list(db.execute(select(DataCenterSource)).scalars())
+    sources_by_dc = {}
+    for s in sources:
+        sources_by_dc.setdefault(s.data_center_id, []).append(s)
     last_runs = {}
     runs = list(
         db.execute(
@@ -30,6 +34,16 @@ def list_data_centers(db: Session = Depends(get_db)) -> APIResponse:
                 "name": c.name,
                 "status": c.status,
                 "last_sync": str(c.last_sync) if c.last_sync else None,
+                "sources": [
+                    {
+                        "id": s.id,
+                        "type": s.source_type,
+                        "status": s.status,
+                        "last_sync": str(s.last_sync) if s.last_sync else None,
+                        "last_error": s.last_error,
+                    }
+                    for s in sources_by_dc.get(c.id, [])
+                ],
                 "latest_ingestion": {
                     "id": last_run.id,
                     "status": last_run.status,

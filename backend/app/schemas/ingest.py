@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 class IngestSyncRequest(BaseModel):
     data_center_id: int = Field(..., description="Target data center id")
-    source_id: Optional[str] = Field(default=None, description="Optional source identifier")
+    source_id: Optional[int] = Field(default=None, description="Optional source identifier")
 
 
 class IngestUploadRequest(BaseModel):

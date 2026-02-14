@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     cors_origins: str = Field(default="http://localhost:5173", validation_alias="CORS_ORIGINS")
     maintenance_enabled: bool = Field(default=True, validation_alias="MAINTENANCE_ENABLED")
     maintenance_interval_minutes: int = Field(default=15, validation_alias="MAINTENANCE_INTERVAL_MINUTES")
+    ingestion_enabled: bool = Field(default=True, validation_alias="INGESTION_ENABLED")
+    ingestion_interval_minutes: int = Field(default=10, validation_alias="INGESTION_INTERVAL_MINUTES")
 
     nl2sql_mode: str = Field(default="llm", validation_alias="NL2SQL_MODE")
     llm_provider: str = Field(default="gemini", validation_alias="LLM_PROVIDER")

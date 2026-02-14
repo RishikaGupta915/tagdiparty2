@@ -33,13 +33,17 @@ def build_graph(db) -> StateGraph:
         if llm is None:
             return _generate_sql(state)
 
-        prompt = build_prompt(state["query"], state.get("domain"), state["schema"])
-        response = llm.invoke(prompt)
-        content = response.content.strip() if hasattr(response, "content") else str(response).strip()
-        sql, questions = parse_llm_output(content)
-        state["sql"] = sql
-        state["questions"] = questions
-        return state
+        try:
+            prompt = build_prompt(state["query"], state.get("domain"), state["schema"])
+            response = llm.invoke(prompt)
+            content = response.content.strip() if hasattr(response, "content") else str(response).strip()
+            sql, questions = parse_llm_output(content)
+            state["sql"] = sql
+            state["questions"] = questions
+            return state
+        except Exception:
+            # Fallback to rules when LLM quota/auth fails
+            return _generate_sql(state)
 
     def _validate_sql(state: NL2SQLState) -> NL2SQLState:
         sql = state.get("sql")

@@ -1,6 +1,6 @@
 import csv
 from io import StringIO
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Dict, Any
 from sqlalchemy import select, func
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -53,6 +53,7 @@ def ingest_csv(
     db: Session,
     dataset: str,
     content: str,
+    mapping: Dict[str, str] | None = None,
 ) -> Tuple[int, str]:
     if dataset not in ALLOWED_DATASETS:
         return 0, f"Unsupported dataset: {dataset}"
@@ -65,6 +66,7 @@ def ingest_csv(
         if dataset == "users":
             records = []
             for row in rows:
+                row = _apply_mapping(row, mapping)
                 name = (row.get("name") or "").strip()
                 email = (row.get("email") or "").strip()
                 role = (row.get("role") or "analyst").strip()
@@ -76,6 +78,7 @@ def ingest_csv(
         if dataset == "transactions":
             records = []
             for row in rows:
+                row = _apply_mapping(row, mapping)
                 user_id = int(row.get("user_id") or 0)
                 amount_raw = row.get("amount")
                 amount = float(amount_raw) if amount_raw not in (None, "") else None
@@ -96,6 +99,7 @@ def ingest_csv(
         if dataset == "login_events":
             records = []
             for row in rows:
+                row = _apply_mapping(row, mapping)
                 user_id = int(row.get("user_id") or 0)
                 ip_address = (row.get("ip_address") or "").strip()
                 success = int(row.get("success") or 1)
@@ -117,6 +121,18 @@ def ingest_csv(
     except (ValueError, SQLAlchemyError) as exc:
         db.rollback()
         return 0, str(exc)
+
+
+def _apply_mapping(row: Dict[str, Any], mapping: Dict[str, str] | None) -> Dict[str, Any]:
+    if not mapping:
+        return row
+    mapped = dict(row)
+    for source_field, dest_field in mapping.items():
+        if source_field in row and dest_field not in mapped:
+            mapped[dest_field] = row[source_field]
+        if source_field in row and dest_field in mapped:
+            mapped[dest_field] = row[source_field]
+    return mapped
 
 
 def get_latest_ingestion_run(db: Session) -> IngestionRun | None:

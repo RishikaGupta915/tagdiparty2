@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import Table
+from sqlalchemy import Table, text
 from app.db.session import (
     engine_primary,
     engine_alerts,
@@ -11,7 +11,7 @@ from app.models.demo import User, Transaction, LoginEvent
 from app.models.alerts import Metric, Event, AlertHistory, AnomalyHistory
 from app.models.sentinel import ScanHistory
 from app.models.dashboard import Dashboard
-from app.models.ingestion import DataCenter, IngestionRun, SchemaRegistry
+from app.models.ingestion import DataCenter, IngestionRun, SchemaRegistry, DataCenterSource
 from app.models.analytics import DailyTransactionMetric
 from app.models.archive import TransactionArchive, LoginEventArchive
 
@@ -40,6 +40,7 @@ def init_db(database_url: str) -> None:
         Base.metadata.tables["data_centers"],
         Base.metadata.tables["ingestion_runs"],
         Base.metadata.tables["schema_registry"],
+        Base.metadata.tables["data_center_sources"],
     ]
     alerts_tables = [
         Base.metadata.tables["metrics"],
@@ -54,9 +55,11 @@ def init_db(database_url: str) -> None:
     Base.metadata.create_all(bind=engine_primary, tables=primary_tables)
     Base.metadata.create_all(bind=engine_alerts, tables=alerts_tables)
     Base.metadata.create_all(bind=engine_dashboards, tables=dashboards_tables)
+    _ensure_columns()
 
     _seed_demo_data()
     _seed_data_centers()
+    _seed_data_center_sources()
 
 
 def _seed_demo_data() -> None:
@@ -107,3 +110,51 @@ def _seed_data_centers() -> None:
         db.rollback()
     finally:
         db.close()
+
+
+def _seed_data_center_sources() -> None:
+    """Insert demo data center sources if empty."""
+    db = SessionLocalPrimary()
+    try:
+        from sqlalchemy import select
+        existing = db.execute(select(DataCenterSource)).first()
+        if existing:
+            return
+
+        centers = list(db.execute(select(DataCenter)).scalars())
+        if not centers:
+            return
+
+        defaults = []
+        for dc in centers:
+            defaults.append(
+                DataCenterSource(
+                    data_center_id=dc.id,
+                    source_type="csv",
+                    config_json='{"path": "./data/ingest/' + dc.name + '"}',
+                    status="active",
+                )
+            )
+        db.add_all(defaults)
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+
+def _ensure_columns() -> None:
+    _ensure_column(engine_primary, "data_center_sources", "cursor_json", "TEXT", "DEFAULT '{}'")
+
+
+def _ensure_column(engine, table: str, column: str, column_type: str, default_sql: str) -> None:
+    if not engine.url.drivername.startswith("sqlite"):
+        return
+    with engine.connect() as conn:
+        rows = conn.execute(text(f"PRAGMA table_info({table})")).mappings().all()
+        if not rows:
+            return
+        existing = {row["name"] for row in rows}
+        if column in existing:
+            return
+        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {column_type} {default_sql}"))
