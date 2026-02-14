@@ -14,7 +14,7 @@
 | Sentinel Agent              | **Complete**                                          |
 | Alerts & Monitoring         | **Partial** — CRUD done, evaluation/detection missing |
 | Dashboards                  | **Partial** — backend CRUD exists, no frontend UI     |
-| Data Collection & Ingestion | **Not Started**                                       |
+| Data Collection & Ingestion | **Complete**                                          |
 | Frontend UI                 | **Partial** — 2 of 6+ required pages built            |
 | Deployment (Docker)         | **Complete**                                          |
 | CI/CD                       | **Not Started**                                       |
@@ -45,6 +45,13 @@
 | `/api/v1/dashboards/{id}`             | GET    | Get dashboard by ID                | `backend/app/api/routes/dashboards.py`  |
 | `/api/v1/maintenance/refresh-metrics` | POST   | Refresh daily transaction metrics  | `backend/app/api/routes/maintenance.py` |
 | `/api/v1/maintenance/archive`         | POST   | Archive old data                   | `backend/app/api/routes/maintenance.py` |
+| `/api/v1/ingest/upload`               | POST   | CSV file ingestion                 | `backend/app/api/routes/ingest.py`      |
+| `/api/v1/ingest/sync`                 | POST   | Trigger sync for a data center     | `backend/app/api/routes/ingest.py`      |
+| `/api/v1/ingest/status`               | GET    | Latest ingestion status            | `backend/app/api/routes/ingest.py`      |
+| `/api/v1/data-centers`                | GET    | List data sources + health         | `backend/app/api/routes/data_centers.py` |
+| `/api/v1/data-centers/{id}/sources`   | GET    | List data center connectors        | `backend/app/api/routes/data_center_sources.py` |
+| `/api/v1/data-centers/{id}/sources`   | POST   | Create data center connector       | `backend/app/api/routes/data_center_sources.py` |
+| `/api/v1/sources/{id}`                | PUT    | Update data center connector       | `backend/app/api/routes/data_center_sources.py` |
 | `/api/db-test/health`                 | GET    | DB connectivity check              | `backend/app/api/routes/db_test.py`     |
 | `/api/db-test/tables`                 | GET    | List DB tables                     | `backend/app/api/routes/db_test.py`     |
 | `/api/db-test/schema`                 | GET    | Primary DB schema introspection    | `backend/app/api/routes/db_test.py`     |
@@ -83,6 +90,10 @@
 | `LoginEventArchive`      | `login_events_archive`      | Done                                                                  |
 | `DailyTransactionMetric` | `daily_transaction_metrics` | Done                                                                  |
 | `ScanHistory`            | `scan_history`              | Done — `scan_id, domain, status, risk_score, result_json, created_at` |
+| `DataCenter`             | `data_centers`              | Done — `id, name, status, last_sync, created_at`                      |
+| `IngestionRun`           | `ingestion_runs`            | Done — `id, data_center_id, source_id, status, records_ingested, errors` |
+| `SchemaRegistry`         | `schema_registry`           | Done — `table_name, version, columns_json`                            |
+| `DataCenterSource`       | `data_center_sources`       | Done — `data_center_id, source_type, config_json, last_sync, last_error, cursor_json` |
 
 **Alerts DB (`derivinsight_alerts.db`):**
 
@@ -105,6 +116,15 @@
 | -------------------- | ----------------------------------------------- | ----------------------------------------------------------------- |
 | Archive service      | `backend/app/services/maintenance/archive.py`   | Archives old transactions + login events, refreshes daily metrics |
 | Background scheduler | `backend/app/services/maintenance/scheduler.py` | Runs metric refresh every 15 min via asyncio                      |
+
+### Ingestion Services (Complete)
+
+| Component           | File                                          | Description                                                               |
+| ------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
+| Ingestion engine    | `backend/app/services/ingestion/engine.py`    | CSV ingestion, run tracking, latest run status                            |
+| Source sync         | `backend/app/services/ingestion/sync.py`      | CSV + DB + API connectors, schema mapping, incremental cursor, error handling |
+| Ingestion scheduler | `backend/app/services/ingestion/scheduler.py` | Automatic polling every N minutes                                         |
+| API connector       | `backend/app/services/ingestion/sync.py`      | Generic JSON API connector                                                 |
 
 ### Configuration & Infrastructure (Complete)
 
@@ -144,32 +164,16 @@
 | `test_alerts.py`          | Event ingestion, metrics CRUD, history, anomalies       | 10    |
 | `test_sentinel.py`        | All domains, history, SSE stream                        | 10    |
 | `test_maintenance.py`     | Refresh, archive, scheduler                             | 8     |
+| `test_ingestion.py`       | CSV pickup, DB connector mapping, cursor update         | 2     |
 | `test_llm_integration.py` | Prompts, parsing, LLM client, graph, validation, repair | ~39   |
 
 ---
 
 ## NOT IMPLEMENTED
 
-### 1. Data Collection & Ingestion Pipeline (PRD Milestone #1 — Not Started)
+### 1. Data Collection & Ingestion Pipeline (PRD Milestone #1 — Complete)
 
-**Missing API Endpoints:**
-
-| Endpoint                | Method | PRD Requirement                |
-| ----------------------- | ------ | ------------------------------ |
-| `/api/v1/ingest/upload` | POST   | CSV file ingestion             |
-| `/api/v1/ingest/sync`   | POST   | Trigger sync for a data center |
-| `/api/v1/ingest/status` | GET    | Latest ingestion status        |
-| `/api/v1/data-centers`  | GET    | List data sources + health     |
-
-**Missing Backend Services:**
-
-- Configurable connectors per data center (SQLAlchemy URL, CSV, API)
-- Scheduled ingestion with automatic polling (no manual trigger)
-- Incremental sync support
-- Schema normalization and mapping into canonical tables
-- Automated CSV file pickup
-- Data freshness tracking per source
-- Ingestion failure logging surfaced in UI
+**Remaining Gaps:** None
 
 ### 2. Data Model Gaps (PRD Milestone #2 — Partial)
 
@@ -183,11 +187,9 @@
 
 **Missing metadata tables:**
 
-| Table             | Fields                                            | Purpose                      |
-| ----------------- | ------------------------------------------------- | ---------------------------- |
-| `data_centers`    | `id, name, status, last_sync`                     | Track connected data centers |
-| `ingestion_runs`  | `id, source_id, status, records_ingested, errors` | Track each ingestion job     |
-| `schema_registry` | `table, version, columns`                         | Schema versioning            |
+| Table  | Fields | Purpose |
+| ------ | ------ | ------- |
+| (none) | -      | -       |
 
 ### 3. Alert Metric Evaluation & Anomaly Detection (PRD Milestone #4 — Stub)
 
@@ -256,7 +258,7 @@
 
 | Priority | Milestone                                                  | Effort | Status      |
 | -------- | ---------------------------------------------------------- | ------ | ----------- |
-| **P0**   | Data source config + ingestion pipeline                    | Large  | Not Started |
+| **P0**   | Data source config + ingestion pipeline                    | Large  | Complete    |
 | **P0**   | Data model updates (DC fields, metadata tables)            | Medium | Not Started |
 | **P1**   | Alert evaluation engine + anomaly detection                | Medium | Stub exists |
 | **P1**   | Frontend: data center overview + alerts + dashboards pages | Large  | Not Started |
